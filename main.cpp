@@ -130,20 +130,24 @@ void manageWorkshop(Station &s, int delta) {
     std::cout << (delta > 0 ? "Запущен 1 цех. " : "Остановлен 1 цех. ") << "Теперь работают: " << s.running_workshops << "\n";
 }
 
-bool saveToFile(const Pipe &p, const Station &s, const std::string &filename) {
+bool saveToFile(const Pipe &p, const Station &s, const std::string &filename, bool hasPipe, bool hasStation) {
     std::ofstream ofs(filename);
     if (!ofs) {
         std::cout << "Не удалось открыть файл для записи: " << filename << "\n";
         return false;
     }
-    ofs << p.km_mark << "\n"
-        << p.length_km << "\n"
-        << p.diameter_mm << "\n"
-        << (p.in_repair ? 1 : 0) << "\n"
-        << s.name << "\n"
-        << s.total_workshops << "\n"
-        << s.running_workshops << "\n"
-        << s.station_class << "\n";
+    if (hasPipe) {
+        ofs << p.km_mark << "\n"
+            << p.length_km << "\n"
+            << p.diameter_mm << "\n"
+            << (p.in_repair ? 1 : 0) << "\n";
+    }
+    if (hasStation) {
+        ofs << s.name << "\n"
+            << s.total_workshops << "\n"
+            << s.running_workshops << "\n"
+            << s.station_class << "\n";
+    }
     if (!ofs) {
         std::cout << "Ошибка при записи в файл.\n";
         return false;
@@ -152,33 +156,43 @@ bool saveToFile(const Pipe &p, const Station &s, const std::string &filename) {
     return true;
 }
 
-bool loadFromFile(Pipe &p, Station &s, const std::string &filename) {
+bool loadFromFile(Pipe &p, Station &s, const std::string &filename, bool &hasPipe, bool &hasStation) {
+    hasPipe = false;
+    hasStation = false;
     std::ifstream ifs(filename);
     if (!ifs) {
         std::cout << "Не удалось открыть файл для чтения: " << filename << "\n";
         return false;
     }
-    if (!std::getline(ifs, p.km_mark)) return false;
+    if (ifs.peek() == EOF) {
+        return false;
+    }
+
     std::string line;
+
+    if (!std::getline(ifs, p.km_mark)) return false;
     if (!std::getline(ifs, line)) return false;
     try { p.length_km = std::stod(line); } catch (...) { return false; }
     if (!std::getline(ifs, line)) return false;
     try { p.diameter_mm = std::stoi(line); } catch (...) { return false; }
     if (!std::getline(ifs, line)) return false;
     p.in_repair = (line == "1");
+    hasPipe = true;
 
-    if (!std::getline(ifs, s.name)) return false;
-    if (!std::getline(ifs, line)) return false;
-    try { s.total_workshops = std::stoi(line); } catch (...) { return false; }
-    if (!std::getline(ifs, line)) return false;
-    try { s.running_workshops = std::stoi(line); } catch (...) { return false; }
-    if (!std::getline(ifs, line)) return false;
-    try { s.station_class = std::stoi(line); } catch (...) { return false; }
+    if (ifs.peek() != EOF) {
+        if (!std::getline(ifs, s.name)) return true; // no station, but pipe read, so return true
+        if (!std::getline(ifs, line)) return true;
+        try { s.total_workshops = std::stoi(line); } catch (...) { return true; }
+        if (!std::getline(ifs, line)) return true;
+        try { s.running_workshops = std::stoi(line); } catch (...) { return true; }
+        if (!std::getline(ifs, line)) return true;
+        try { s.station_class = std::stoi(line); } catch (...) { return true; }
 
-    if (s.running_workshops < 0) s.running_workshops = 0;
-    if (s.running_workshops > s.total_workshops) s.running_workshops = s.total_workshops;
+        if (s.running_workshops < 0) s.running_workshops = 0;
+        if (s.running_workshops > s.total_workshops) s.running_workshops = s.total_workshops;
 
-    std::cout << "Успешно загружено из " << filename << "\n";
+        hasStation = true;
+    }
     return true;
 }
 
@@ -234,18 +248,17 @@ int main() {
                 }
                 {
                     std::string fn = readLineNonEmpty("Введите имя файла для сохранения: ");
-                    if (!hasPipe) saveToFile(Pipe{}, st, fn);
-                    else if (!hasStation) saveToFile(pipe, Station{}, fn);
-                    else saveToFile(pipe, st, fn);
+                    saveToFile(pipe, st, fn, hasPipe, hasStation);
                 }
                 break;
             case 7:
                 {
                     std::string fn = readLineNonEmpty("Введите имя файла для загрузки: ");
                     Pipe tmpPipe; Station tmpSt;
-                    if (loadFromFile(tmpPipe, tmpSt, fn)) {
+                    bool tmpHasPipe = false, tmpHasStation = false;
+                    if (loadFromFile(tmpPipe, tmpSt, fn, tmpHasPipe, tmpHasStation)) {
                         pipe = tmpPipe; st = tmpSt;
-                        hasPipe = true; hasStation = true;
+                        hasPipe = tmpHasPipe; hasStation = tmpHasStation;
                     } else {
                         std::cout << "Не удалось загрузить объекты из файла.\n";
                     }
