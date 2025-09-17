@@ -18,7 +18,6 @@ struct Station {
     int station_class = 0;
 };
 
-// ---------- Помошник ----------
 void clearStdin() {
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -34,9 +33,7 @@ std::string readLineNonEmpty(const std::string& prompt) {
         }
         size_t start = s.find_first_not_of(" \t\r\n");
         size_t end = s.find_last_not_of(" \t\r\n");
-        if (start == std::string::npos) s = "";
-        else s = s.substr(start, end - start + 1);
-
+        s = (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
         if (!s.empty()) return s;
         std::cout << "Ввод не может быть пустым. Повторите.\n";
     }
@@ -48,11 +45,7 @@ double readDouble(const std::string& prompt, double minVal = -1e300, double maxV
         try {
             size_t pos;
             double val = std::stod(s, &pos);
-            if (pos != s.size()) throw std::invalid_argument("extra chars");
-            if (val < minVal || val > maxVal) {
-                std::cout << "Значение вне допустимого диапазона. Попробуйте снова.\n";
-                continue;
-            }
+            if (pos != s.size() || val < minVal || val > maxVal) throw std::invalid_argument("");
             return val;
         } catch (...) {
             std::cout << "Некорректный вещественный ввод. Попробуйте снова.\n";
@@ -66,11 +59,7 @@ int readInt(const std::string& prompt, int minVal = std::numeric_limits<int>::mi
         try {
             size_t pos;
             long val = std::stol(s, &pos);
-            if (pos != s.size()) throw std::invalid_argument("extra chars");
-            if (val < minVal || val > maxVal) {
-                std::cout << "Значение вне допустимого диапазона. Попробуйте снова.\n";
-                continue;
-            }
+            if (pos != s.size() || val < minVal || val > maxVal) throw std::invalid_argument("");
             return static_cast<int>(val);
         } catch (...) {
             std::cout << "Некорректный целочисленный ввод. Попробуйте снова.\n";
@@ -87,7 +76,6 @@ bool yesNo(const std::string& prompt) {
     }
 }
 
-// ---------- Операции с трубами ----------
 void readPipeFromConsole(Pipe &p) {
     p.km_mark = readLineNonEmpty("Введите километровую отметку (название трубы): ");
     p.length_km = readDouble("Введите длину трубы (км, положительное число): ", 0.0, 1e6);
@@ -96,11 +84,11 @@ void readPipeFromConsole(Pipe &p) {
 }
 
 void printPipe(const Pipe &p) {
-    std::cout << "=== Труба ===\n";
-    std::cout << "Километровая отметка: " << p.km_mark << "\n";
-    std::cout << "Длина (км): " << p.length_km << "\n";
-    std::cout << "Диаметр (мм): " << p.diameter_mm << "\n";
-    std::cout << "В ремонте: " << (p.in_repair ? "Да" : "Нет") << "\n";
+    std::cout << "=== Труба ===\n"
+              << "Километровая отметка: " << p.km_mark << "\n"
+              << "Длина (км): " << p.length_km << "\n"
+              << "Диаметр (мм): " << p.diameter_mm << "\n"
+              << "В ремонте: " << (p.in_repair ? "Да" : "Нет") << "\n";
 }
 
 void togglePipeRepair(Pipe &p) {
@@ -109,71 +97,53 @@ void togglePipeRepair(Pipe &p) {
     std::cout << "Новое состояние: " << (p.in_repair ? "В ремонте" : "Не в ремонте") << "\n";
 }
 
-// ---------- Оперции со станциями ----------
 void readStationFromConsole(Station &s) {
     s.name = readLineNonEmpty("Введите название КС: ");
     s.total_workshops = readInt("Введите общее количество цехов (целое >=0): ", 0, 10000);
-    s.running_workshops = 0;
-    if (s.total_workshops > 0) {
-        s.running_workshops = readInt("Введите количество работающих цехов (0..общее): ", 0, s.total_workshops);
-    }
+    s.running_workshops = (s.total_workshops > 0) ? readInt("Введите количество работающих цехов (0..общее): ", 0, s.total_workshops) : 0;
     s.station_class = readInt("Введите класс станции (целое, например 1..10): ", 0, 1000000);
 }
 
 void printStation(const Station &s) {
-    std::cout << "=== КС ===\n";
-    std::cout << "Название: " << s.name << "\n";
-    std::cout << "Всего цехов: " << s.total_workshops << "\n";
-    std::cout << "Работают цехов: " << s.running_workshops << "\n";
-    std::cout << "Класс станции: " << s.station_class << "\n";
+    std::cout << "=== КС ===\n"
+              << "Название: " << s.name << "\n"
+              << "Всего цехов: " << s.total_workshops << "\n"
+              << "Работают цехов: " << s.running_workshops << "\n"
+              << "Класс станции: " << s.station_class << "\n";
 }
 
-void startWorkshop(Station &s) {
+void manageWorkshop(Station &s, int delta) {
     if (s.total_workshops == 0) {
         std::cout << "У станции нет цехов.\n";
         return;
     }
-    if (s.running_workshops >= s.total_workshops) {
-        std::cout << "Все цехи уже запущены.\n";
-        return;
-    }
-    s.running_workshops++;
-    std::cout << "Запущен 1 цех. Теперь работают: " << s.running_workshops << "\n";
-}
-
-void stopWorkshop(Station &s) {
-    if (s.total_workshops == 0) {
-        std::cout << "У станции нет цехов.\n";
-        return;
-    }
-    if (s.running_workshops <= 0) {
+    int new_running = s.running_workshops + delta;
+    if (new_running < 0) {
         std::cout << "Нет работающих цехов, которые можно остановить.\n";
         return;
     }
-    s.running_workshops--;
-    std::cout << "Остановлен 1 цех. Теперь работают: " << s.running_workshops << "\n";
+    if (new_running > s.total_workshops) {
+        std::cout << "Все цехи уже запущены.\n";
+        return;
+    }
+    s.running_workshops = new_running;
+    std::cout << (delta > 0 ? "Запущен 1 цех. " : "Остановлен 1 цех. ") << "Теперь работают: " << s.running_workshops << "\n";
 }
 
-// ---------- Сохранить / удалить ----------
 bool saveToFile(const Pipe &p, const Station &s, const std::string &filename) {
     std::ofstream ofs(filename);
     if (!ofs) {
         std::cout << "Не удалось открыть файл для записи: " << filename << "\n";
         return false;
     }
-    ofs << "PIPE\n";
-    ofs << p.km_mark << "\n";
-    ofs << p.length_km << "\n";
-    ofs << p.diameter_mm << "\n";
-    ofs << (p.in_repair ? 1 : 0) << "\n";
-
-    ofs << "STATION\n";
-    ofs << s.name << "\n";
-    ofs << s.total_workshops << "\n";
-    ofs << s.running_workshops << "\n";
-    ofs << s.station_class << "\n";
-
-    ofs.close();
+    ofs << p.km_mark << "\n"
+        << p.length_km << "\n"
+        << p.diameter_mm << "\n"
+        << (p.in_repair ? 1 : 0) << "\n"
+        << s.name << "\n"
+        << s.total_workshops << "\n"
+        << s.running_workshops << "\n"
+        << s.station_class << "\n";
     if (!ofs) {
         std::cout << "Ошибка при записи в файл.\n";
         return false;
@@ -188,12 +158,8 @@ bool loadFromFile(Pipe &p, Station &s, const std::string &filename) {
         std::cout << "Не удалось открыть файл для чтения: " << filename << "\n";
         return false;
     }
-    std::string line;
-    if (!std::getline(ifs, line) || line != "PIPE") {
-        std::cout << "Формат файла неверный или отсутствует раздел PIPE.\n";
-        return false;
-    }
     if (!std::getline(ifs, p.km_mark)) return false;
+    std::string line;
     if (!std::getline(ifs, line)) return false;
     try { p.length_km = std::stod(line); } catch (...) { return false; }
     if (!std::getline(ifs, line)) return false;
@@ -201,10 +167,6 @@ bool loadFromFile(Pipe &p, Station &s, const std::string &filename) {
     if (!std::getline(ifs, line)) return false;
     p.in_repair = (line == "1");
 
-    if (!std::getline(ifs, line) || line != "STATION") {
-        std::cout << "Формат файла неверный или отсутствует раздел STATION.\n";
-        return false;
-    }
     if (!std::getline(ifs, s.name)) return false;
     if (!std::getline(ifs, line)) return false;
     try { s.total_workshops = std::stoi(line); } catch (...) { return false; }
@@ -213,7 +175,6 @@ bool loadFromFile(Pipe &p, Station &s, const std::string &filename) {
     if (!std::getline(ifs, line)) return false;
     try { s.station_class = std::stoi(line); } catch (...) { return false; }
 
-    // basic post-validation
     if (s.running_workshops < 0) s.running_workshops = 0;
     if (s.running_workshops > s.total_workshops) s.running_workshops = s.total_workshops;
 
@@ -221,110 +182,81 @@ bool loadFromFile(Pipe &p, Station &s, const std::string &filename) {
     return true;
 }
 
-// ---------- Меню ----------
-void printMenu() {
-    std::cout << "\n--- Меню ---\n";
-    std::cout << "1. Добавить/редактировать Трубу\n";
-    std::cout << "2. Добавить/редактировать КС\n";
-    std::cout << "3. Просмотр всех объектов\n";
-    std::cout << "4. Редактировать признак 'в ремонте' для трубы\n";
-    std::cout << "5. Запуск/Остановка цеха на КС\n";
-    std::cout << "6. Сохранить в файл\n";
-    std::cout << "7. Загрузить из файла\n";
-    std::cout << "0. Выход\n";
-}
-
 int main() {
     Pipe pipe;
     Station st;
-    bool hasPipe = false;
-    bool hasStation = false;
+    bool hasPipe = false, hasStation = false;
 
     while (true) {
-        printMenu();
+        std::cout << "\n--- Меню ---\n"
+                  << "1. Добавить/редактировать Трубу\n"
+                  << "2. Добавить/редактировать КС\n"
+                  << "3. Просмотр всех объектов\n"
+                  << "4. Редактировать признак 'в ремонте' для трубы\n"
+                  << "5. Запуск/Остановка цеха на КС\n"
+                  << "6. Сохранить в файл\n"
+                  << "7. Загрузить из файла\n"
+                  << "0. Выход\n";
+
         int cmd = readInt("Выберите действие (номер): ", 0, 9);
         switch (cmd) {
-            case 1: {
-                if (hasPipe) {
-                    if (!yesNo("Труба уже существует. Перезаписать?")) break;
-                }
+            case 1:
+                if (hasPipe && !yesNo("Труба уже существует. Перезаписать?")) break;
                 readPipeFromConsole(pipe);
                 hasPipe = true;
                 break;
-            }
-            case 2: {
-                if (hasStation) {
-                    if (!yesNo("КС уже существует. Перезаписать?")) break;
-                }
+            case 2:
+                if (hasStation && !yesNo("КС уже существует. Перезаписать?")) break;
                 readStationFromConsole(st);
                 hasStation = true;
                 break;
-            }
-            case 3: {
-                if (hasPipe) printPipe(pipe);
-                else std::cout << "Труба не задана.\n";
-                if (hasStation) printStation(st);
-                else std::cout << "КС не задана.\n";
+            case 3:
+                std::cout << (hasPipe ? (printPipe(pipe), "") : "Труба не задана.\n");
+                std::cout << (hasStation ? (printStation(st), "") : "КС не задана.\n");
                 break;
-            }
-            case 4: {
-                if (!hasPipe) {
-                    std::cout << "Труба ещё не задана. Сначала добавьте трубу.\n";
-                } else {
-                    togglePipeRepair(pipe);
-                }
+            case 4:
+                if (!hasPipe) std::cout << "Труба ещё не задана. Сначала добавьте трубу.\n";
+                else togglePipeRepair(pipe);
                 break;
-            }
-            case 5: {
+            case 5:
                 if (!hasStation) {
                     std::cout << "КС ещё не задана. Сначала добавьте КС.\n";
                 } else {
                     std::cout << "1. Запустить цех\n2. Остановить цех\n";
                     int sub = readInt("Выберите: ", 1, 2);
-                    if (sub == 1) startWorkshop(st); else stopWorkshop(st);
+                    manageWorkshop(st, sub == 1 ? 1 : -1);
                 }
                 break;
-            }
-            case 6: {
+            case 6:
                 if (!hasPipe && !hasStation) {
                     std::cout << "Нет данных для сохранения.\n";
                     break;
                 }
-                std::string fn = readLineNonEmpty("Введите имя файла для сохранения: ");
-                if (!hasPipe) {
-                    // create empty pipe default?
-                    Pipe tmp;
-                    saveToFile(tmp, st, fn);
-                } else if (!hasStation) {
-                    Station tmp;
-                    saveToFile(pipe, tmp, fn);
-                } else {
-                    saveToFile(pipe, st, fn);
+                {
+                    std::string fn = readLineNonEmpty("Введите имя файла для сохранения: ");
+                    if (!hasPipe) saveToFile(Pipe{}, st, fn);
+                    else if (!hasStation) saveToFile(pipe, Station{}, fn);
+                    else saveToFile(pipe, st, fn);
                 }
                 break;
-            }
-            case 7: {
-                std::string fn = readLineNonEmpty("Введите имя файла для загрузки: ");
-                Pipe tmpPipe;
-                Station tmpSt;
-                if (loadFromFile(tmpPipe, tmpSt, fn)) {
-                    pipe = tmpPipe;
-                    st = tmpSt;
-                    hasPipe = true;
-                    hasStation = true;
-                } else {
-                    std::cout << "Не удалось загрузить объекты из файла.\n";
+            case 7:
+                {
+                    std::string fn = readLineNonEmpty("Введите имя файла для загрузки: ");
+                    Pipe tmpPipe; Station tmpSt;
+                    if (loadFromFile(tmpPipe, tmpSt, fn)) {
+                        pipe = tmpPipe; st = tmpSt;
+                        hasPipe = true; hasStation = true;
+                    } else {
+                        std::cout << "Не удалось загрузить объекты из файла.\n";
+                    }
                 }
                 break;
-            }
-            case 0: {
+            case 0:
                 std::cout << "Выход. До свидания.\n";
                 return 0;
-            }
             default:
                 std::cout << "Некорректный пункт меню.\n";
         }
     }
-
     return 0;
 }
