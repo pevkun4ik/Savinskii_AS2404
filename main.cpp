@@ -23,10 +23,10 @@ void clearStdin() {
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
-std::string readLineNonEmpty(const std::string& prompt) {
+std::string readLineNonEmpty(const std::string& message) {
     std::string s;
     while (true) {
-        std::cout << prompt;
+        std::cout << message;
         if (!std::getline(std::cin, s)) {
             std::cin.clear();
             continue;
@@ -39,9 +39,9 @@ std::string readLineNonEmpty(const std::string& prompt) {
     }
 }
 
-double readDouble(const std::string& prompt, double minVal = -1e300, double maxVal = 1e300) {
+double readDouble(const std::string& message, double minVal = -1e300, double maxVal = 1e300) {
     while (true) {
-        std::string s = readLineNonEmpty(prompt);
+        std::string s = readLineNonEmpty(message);
         try {
             size_t pos;
             double val = std::stod(s, &pos);
@@ -53,9 +53,9 @@ double readDouble(const std::string& prompt, double minVal = -1e300, double maxV
     }
 }
 
-int readInt(const std::string& prompt, int minVal = std::numeric_limits<int>::min(), int maxVal = std::numeric_limits<int>::max()) {
+int readInt(const std::string& message, int minVal = std::numeric_limits<int>::min(), int maxVal = std::numeric_limits<int>::max()) {
     while (true) {
-        std::string s = readLineNonEmpty(prompt);
+        std::string s = readLineNonEmpty(message);
         try {
             size_t pos;
             long val = std::stol(s, &pos);
@@ -67,9 +67,9 @@ int readInt(const std::string& prompt, int minVal = std::numeric_limits<int>::mi
     }
 }
 
-bool yesNo(const std::string& prompt) {
+bool yesNo(const std::string& message) {
     while (true) {
-        std::string s = readLineNonEmpty(prompt + " (y/n): ");
+        std::string s = readLineNonEmpty(message + " (y/n): ");
         if (s == "y" || s == "Y" || s == "yes" || s == "Yes") return true;
         if (s == "n" || s == "N" || s == "no" || s == "No") return false;
         std::cout << "Введите 'y' или 'n'.\n";
@@ -215,12 +215,14 @@ int main() {
         int cmd = readInt("Выберите действие (номер): ", 0, 9);
         switch (cmd) {
             case 1:
-                if (hasPipe && !yesNo("Труба уже существует. Перезаписать?")) break;
+                if (hasPipe && !yesNo("Труба уже существует. Перезаписать?")) 
+                    break;
                 readPipeFromConsole(pipe);
                 hasPipe = true;
                 break;
             case 2:
-                if (hasStation && !yesNo("КС уже существует. Перезаписать?")) break;
+                if (hasStation && !yesNo("КС уже существует. Перезаписать?")) 
+                    break;
                 readStationFromConsole(st);
                 hasStation = true;
                 break;
@@ -229,8 +231,10 @@ int main() {
                 std::cout << (hasStation ? (printStation(st), "") : "КС не задана.\n");
                 break;
             case 4:
-                if (!hasPipe) std::cout << "Труба ещё не задана. Сначала добавьте трубу.\n";
-                else togglePipeRepair(pipe);
+                if (!hasPipe) 
+                    std::cout << "Труба ещё не задана. Сначала добавьте трубу.\n";
+                else 
+                    togglePipeRepair(pipe);
                 break;
             case 5:
                 if (!hasStation) {
@@ -254,13 +258,17 @@ int main() {
             case 7:
                 {
                     std::string fn = readLineNonEmpty("Введите имя файла для загрузки: ");
-                    Pipe tmpPipe; Station tmpSt;
+                    Pipe tmpPipe; 
+                    Station tmpSt;
                     bool tmpHasPipe = false, tmpHasStation = false;
                     if (loadFromFile(tmpPipe, tmpSt, fn, tmpHasPipe, tmpHasStation)) {
-                        pipe = tmpPipe; st = tmpSt;
-                        hasPipe = tmpHasPipe; hasStation = tmpHasStation;
+                        pipe = tmpPipe; 
+                        st = tmpSt;
+                        hasPipe = tmpHasPipe; 
+                        hasStation = tmpHasStation;
                     } else {
                         std::cout << "Не удалось загрузить объекты из файла.\n";
+                       // pipe = {};
                     }
                 }
                 break;

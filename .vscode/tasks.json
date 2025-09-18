@@ -4,38 +4,18 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "g++ -std=c++17 main.cpp -o pipeline",
-            "group": "build",
-            "presentation": {
-                "reveal": "always"
-            },
-            "problemMatcher": [
-                "$gcc"
-            ]
-        },
-        {
-            "type": "cppbuild",
-            "label": "C/C++: clang++ сборка активного файла",
-            "command": "/usr/bin/clang++",
+            "command": "clang++",
             "args": [
-                "-fcolor-diagnostics",
-                "-fansi-escape-codes",
                 "-g",
-                "${file}",
+                "${workspaceFolder}/main.cpp",
                 "-o",
-                "${fileDirname}/${fileBasenameNoExtension}"
-            ],
-            "options": {
-                "cwd": "${fileDirname}"
-            },
-            "problemMatcher": [
-                "$gcc"
+                "${workspaceFolder}/main"
             ],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Задача создана отладчиком."
+            "problemMatcher": ["$gcc"]
         }
     ]
 }
