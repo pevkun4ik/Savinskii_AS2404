@@ -3,6 +3,7 @@
 #include <fstream>
 #include <limits>
 #include <sstream>
+#include <charconv>
 
 struct Pipe {
     std::string km_mark;
@@ -23,55 +24,57 @@ void clearStdin() {
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
+std::string trim(const std::string& str) {
+    auto start = str.find_first_not_of(" \t\r\n");
+    if (start == std::string::npos) return "";
+    auto end = str.find_last_not_of(" \t\r\n");
+    return str.substr(start, end - start + 1);
+}
+
 std::string readLineNonEmpty(const std::string& message) {
-    std::string s;
-    while (true) {
+    for (;;) {
         std::cout << message;
+        std::string s;
         if (!std::getline(std::cin, s)) {
             std::cin.clear();
             continue;
         }
-        size_t start = s.find_first_not_of(" \t\r\n");
-        size_t end = s.find_last_not_of(" \t\r\n");
-        s = (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
+        s = trim(s);
         if (!s.empty()) return s;
         std::cout << "Ввод не может быть пустым. Повторите.\n";
     }
 }
 
 double readDouble(const std::string& message, double minVal = -1e300, double maxVal = 1e300) {
-    while (true) {
+    for (;;) {
         std::string s = readLineNonEmpty(message);
-        try {
-            size_t pos;
-            double val = std::stod(s, &pos);
-            if (pos != s.size() || val < minVal || val > maxVal) throw std::invalid_argument("");
+        std::stringstream ss(s);
+        double val;
+        if (ss >> val && ss.eof() && val >= minVal && val <= maxVal) {
             return val;
-        } catch (...) {
-            std::cout << "Некорректный вещественный ввод. Попробуйте снова.\n";
         }
+        std::cout << "Некорректный ввод числа с плавающей точкой. Попробуйте снова.\n";
     }
 }
 
 int readInt(const std::string& message, int minVal = std::numeric_limits<int>::min(), int maxVal = std::numeric_limits<int>::max()) {
-    while (true) {
+    for (;;) {
         std::string s = readLineNonEmpty(message);
-        try {
-            size_t pos;
-            long val = std::stol(s, &pos);
-            if (pos != s.size() || val < minVal || val > maxVal) throw std::invalid_argument("");
-            return static_cast<int>(val);
-        } catch (...) {
-            std::cout << "Некорректный целочисленный ввод. Попробуйте снова.\n";
+        std::stringstream ss(s);
+        int val;
+        if (ss >> val && ss.eof() && val >= minVal && val <= maxVal) {
+            return val;
         }
+        std::cout << "Некорректный ввод целого числа. Попробуйте снова.\n";
     }
 }
 
 bool yesNo(const std::string& message) {
     while (true) {
         std::string s = readLineNonEmpty(message + " (y/n): ");
-        if (s == "y" || s == "Y" || s == "yes" || s == "Yes") return true;
-        if (s == "n" || s == "N" || s == "no" || s == "No") return false;
+        std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return std::tolower(c); });
+        if (s == "y" || s == "yes") return true;
+        if (s == "n" || s == "no") return false;
         std::cout << "Введите 'y' или 'n'.\n";
     }
 }
@@ -130,24 +133,30 @@ void manageWorkshop(Station &s, int delta) {
     std::cout << (delta > 0 ? "Запущен 1 цех. " : "Остановлен 1 цех. ") << "Теперь работают: " << s.running_workshops << "\n";
 }
 
+void savePipe(std::ofstream& ofs, const Pipe& p) {
+    ofs << p.km_mark << "\n"
+        << p.length_km << "\n"
+        << p.diameter_mm << "\n"
+        << (p.in_repair ? 1 : 0) << "\n";
+}
+
+void saveStation(std::ofstream& ofs, const Station& s) {
+    ofs << s.name << "\n"
+        << s.total_workshops << "\n"
+        << s.running_workshops << "\n"
+        << s.station_class << "\n";
+}
+
 bool saveToFile(const Pipe &p, const Station &s, const std::string &filename, bool hasPipe, bool hasStation) {
     std::ofstream ofs(filename);
     if (!ofs) {
         std::cout << "Не удалось открыть файл для записи: " << filename << "\n";
         return false;
     }
-    if (hasPipe) {
-        ofs << p.km_mark << "\n"
-            << p.length_km << "\n"
-            << p.diameter_mm << "\n"
-            << (p.in_repair ? 1 : 0) << "\n";
-    }
-    if (hasStation) {
-        ofs << s.name << "\n"
-            << s.total_workshops << "\n"
-            << s.running_workshops << "\n"
-            << s.station_class << "\n";
-    }
+    ofs << (hasPipe ? "PIPE" : "NO_PIPE") << "\n";
+    if (hasPipe) savePipe(ofs, p);
+    if (hasStation) saveStation(ofs, s);
+
     if (!ofs) {
         std::cout << "Ошибка при записи в файл.\n";
         return false;
@@ -164,29 +173,30 @@ bool loadFromFile(Pipe &p, Station &s, const std::string &filename, bool &hasPip
         std::cout << "Не удалось открыть файл для чтения: " << filename << "\n";
         return false;
     }
-    if (ifs.peek() == EOF) {
-        return false;
+
+    std::string flag;
+    if (!std::getline(ifs, flag)) return false;
+    hasPipe = (flag == "PIPE");
+
+    if (hasPipe) {
+        // считываем данные трубы
+        if (!std::getline(ifs, p.km_mark)) return false;
+        if (!std::getline(ifs, flag)) return false;
+        std::stringstream ss1(flag); ss1 >> p.length_km;
+        if (!std::getline(ifs, flag)) return false;
+        std::stringstream ss2(flag); ss2 >> p.diameter_mm;
+        if (!std::getline(ifs, flag)) return false;
+        p.in_repair = (flag == "1");
     }
 
-    std::string line;
-
-    if (!std::getline(ifs, p.km_mark)) return false;
-    if (!std::getline(ifs, line)) return false;
-    try { p.length_km = std::stod(line); } catch (...) { return false; }
-    if (!std::getline(ifs, line)) return false;
-    try { p.diameter_mm = std::stoi(line); } catch (...) { return false; }
-    if (!std::getline(ifs, line)) return false;
-    p.in_repair = (line == "1");
-    hasPipe = true;
-
     if (ifs.peek() != EOF) {
-        if (!std::getline(ifs, s.name)) return true; // no station, but pipe read, so return true
-        if (!std::getline(ifs, line)) return true;
-        try { s.total_workshops = std::stoi(line); } catch (...) { return true; }
-        if (!std::getline(ifs, line)) return true;
-        try { s.running_workshops = std::stoi(line); } catch (...) { return true; }
-        if (!std::getline(ifs, line)) return true;
-        try { s.station_class = std::stoi(line); } catch (...) { return true; }
+        if (!std::getline(ifs, s.name)) return true; 
+        if (!std::getline(ifs, flag)) return true;
+        std::stringstream ss3(flag); ss3 >> s.total_workshops;
+        if (!std::getline(ifs, flag)) return true;
+        std::stringstream ss4(flag); ss4 >> s.running_workshops;
+        if (!std::getline(ifs, flag)) return true;
+        std::stringstream ss5(flag); ss5 >> s.station_class;
 
         if (s.running_workshops < 0) s.running_workshops = 0;
         if (s.running_workshops > s.total_workshops) s.running_workshops = s.total_workshops;
