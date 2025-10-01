@@ -151,13 +151,13 @@ bool loadPipe(std::ifstream& ifs, Pipe& p) {
 
 bool loadStation(std::ifstream& ifs, Station& s) {
     std::string line;
-    if (!std::getline(ifs, s.name)) return false;
-    if (!std::getline(ifs, line)) return false;
-    std::stringstream ss1(line); ss1 >> s.total_workshops;
-    if (!std::getline(ifs, line)) return false;
-    std::stringstream ss2(line); ss2 >> s.running_workshops;
-    if (!std::getline(ifs, line)) return false;
-    std::stringstream ss3(line); ss3 >> s.station_class;
+    std::getline(ifs, s.name);
+    std::getline(ifs, line);
+    std::stringstream(line) >> s.total_workshops;
+    std::getline(ifs, line);
+    std::stringstream(line) >> s.running_workshops;
+    std::getline(ifs, line);
+    std::stringstream(line) >> s.station_class;
 
     if (s.running_workshops < 0) s.running_workshops = 0;
     if (s.running_workshops > s.total_workshops) s.running_workshops = s.total_workshops;
@@ -170,20 +170,21 @@ bool loadFromFile(Pipe &p, Station &s, const std::string &filename, bool &hasPip
     hasStation = false;
     std::ifstream ifs(filename);
     if (!ifs) {
-        std::cout << "Не удалось открыть файл для чтения: " << filename << "\n";
-        return false;
+        hasPipe = false;
+        hasStation = false;
+        return true;
     }
 
     std::string flag;
-    if (!std::getline(ifs, flag)) return false;
+    if (!std::getline(ifs, flag)) return true;
     hasPipe = (flag == "PIPE");
 
     if (hasPipe) {
-        if (!loadPipe(ifs, p)) return false;
+        loadPipe(ifs, p);
     }
 
     if (ifs.peek() != EOF) {
-        if (!loadStation(ifs, s)) return true;
+        loadStation(ifs, s);
         hasStation = true;
     }
     return true;
@@ -191,10 +192,6 @@ bool loadFromFile(Pipe &p, Station &s, const std::string &filename, bool &hasPip
 
 bool saveToFile(const Pipe &p, const Station &s, const std::string &filename, bool hasPipe, bool hasStation) {
     std::ofstream ofs(filename);
-    if (!ofs) {
-        std::cout << "Не удалось открыть файл для записи: " << filename << "\n";
-        return false;
-    }
     if (hasPipe) {
         ofs << "PIPE" << "\n";
         savePipe(ofs, p);
@@ -203,11 +200,6 @@ bool saveToFile(const Pipe &p, const Station &s, const std::string &filename, bo
     }
     if (hasStation) {
         saveStation(ofs, s);
-    }
-
-    if (!ofs) {
-        std::cout << "Ошибка при записи в файл.\n";
-        return false;
     }
     std::cout << "Успешно сохранено в " << filename << "\n";
     return true;
