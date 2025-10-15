@@ -127,7 +127,7 @@ void savePipe(std::ofstream& ofs, const Pipe& p) {
     ofs << p.km_mark << "\n"
         << p.length_km << "\n"
         << p.diameter_mm << "\n"
-        << (p.in_repair ? 1 : 0) << "\n";
+        << p.in_repair << "\n";
 }
 
 void saveStation(std::ofstream& ofs, const Station& s) {
@@ -138,31 +138,26 @@ void saveStation(std::ofstream& ofs, const Station& s) {
 }
 
 bool loadPipe(std::ifstream& ifs, Pipe& p) {
-    std::string line;
-    if (!std::getline(ifs, p.km_mark)) return false;
-    if (!std::getline(ifs, line)) return false;
-    std::stringstream ss1(line); ss1 >> p.length_km;
-    if (!std::getline(ifs, line)) return false;
-    std::stringstream ss2(line); ss2 >> p.diameter_mm;
-    if (!std::getline(ifs, line)) return false;
-    p.in_repair = (line == "1");
-    return true;
+    std::getline(ifs >> std::ws, p.km_mark);
+    ifs >> p.length_km;
+    ifs >> p.diameter_mm;
+    ifs >> p.in_repair;
+
+
+    return ifs.good();
 }
 
 bool loadStation(std::ifstream& ifs, Station& s) {
-    std::string line;
-    std::getline(ifs, s.name);
-    std::getline(ifs, line);
-    std::stringstream(line) >> s.total_workshops;
-    std::getline(ifs, line);
-    std::stringstream(line) >> s.running_workshops;
-    std::getline(ifs, line);
-    std::stringstream(line) >> s.station_class;
+    std::getline(ifs >> std::ws, s.name);
+    ifs >> s.total_workshops;
+    ifs >> s.running_workshops;
+    ifs >> s.station_class;
+    
 
     if (s.running_workshops < 0) s.running_workshops = 0;
     if (s.running_workshops > s.total_workshops) s.running_workshops = s.total_workshops;
 
-    return true;
+    return ifs.good();
 }
 
 bool loadFromFile(Pipe &p, Station &s, const std::string &filename, bool &hasPipe, bool &hasStation) {
@@ -176,7 +171,8 @@ bool loadFromFile(Pipe &p, Station &s, const std::string &filename, bool &hasPip
     }
 
     std::string flag;
-    if (!std::getline(ifs, flag)) return true;
+    if (!std::getline(ifs, flag)) 
+        return true;
     hasPipe = (flag == "PIPE");
 
     if (hasPipe) {
