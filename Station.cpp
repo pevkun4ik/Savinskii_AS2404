@@ -6,7 +6,7 @@
 
 using namespace std;
 
-int Station::MaxID = 1;
+int Station::nextId = 1;
 
 void Station::saveStation(std::ofstream& ofs) const {
     ofs << name << "\n"
@@ -23,6 +23,8 @@ bool Station::loadStation(std::ifstream& ifs, Station& s) {
 
     if (s.running_workshops < 0) s.running_workshops = 0;
     if (s.running_workshops > s.total_workshops) s.running_workshops = s.total_workshops;
+
+    if (s.id >= Station::nextId) Station::nextId = s.id + 1;
 
     return ifs.good();
 }
@@ -73,6 +75,7 @@ std::istream& operator>>(std::istream& in, Station& s) {
         s.running_workshops = 0;
     }
     s.station_class = readInt("Введите класс станции (целое, например 1..10): ", 0, std::numeric_limits<int>::max());
+    s.id = Station::nextId++;
     return in;
 }
 
@@ -83,4 +86,34 @@ std::ostream& operator<<(std::ostream& out, const Station& s) {
         << "Работают цехов: " << s.running_workshops << "\n"
         << "Класс станции: " << s.station_class << "\n";
     return out;
+}
+
+void Station::findByFilter(const std::map<int, Station>& stations)
+{
+    std::string nameFilter = readLineNonEmpty("Введите название КС для поиска (оставьте пустым для пропуска): ");
+    int unusedPercentFilter = readInt("Введите минимальный процент незадействованных цехов (0–100, -1 для пропуска): ", -1, 100);
+
+    bool found = false;
+    for (const auto& [id, s] : stations) {
+        bool matchName = nameFilter.empty() || s.name.find(nameFilter) != std::string::npos;
+
+        int total = s.total_workshops;
+        int running = s.running_workshops;
+        int unusedPercent = (total > 0) ? ((total - running) * 100 / total) : 0;
+        bool matchUnused = (unusedPercentFilter == -1) || (unusedPercent >= unusedPercentFilter);
+
+        if (matchName && matchUnused) {
+            std::cout << "ID: " << id << "\n";
+            s.print();
+            std::cout << "\n";
+            found = true;
+        }
+    }
+
+    if (!found) {
+        std::cout << "КС, соответствующие фильтрам, не найдены.\n";
+    }
+
+    logAction("Поиск КС: название='" + nameFilter +
+              "', минимальный процент незадействованных цехов=" + std::to_string(unusedPercentFilter));
 }

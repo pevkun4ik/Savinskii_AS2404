@@ -1,3 +1,6 @@
+#include "Pipe.h"
+#include "Station.h"
+#include <fstream>
 #include "utils.h"
 
 void clearStdin() {
@@ -48,4 +51,68 @@ int readInt(const std::string& message, int minVal, int maxVal) {
         clearStdin();
         std::cout << "Некорректный ввод целого числа. Попробуйте снова: ";
     }
+}
+
+std::ofstream logfile("log.txt", std::ios::app);
+
+void logAction(const std::string& action) {
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::string time_str = std::ctime(&now_c);
+    time_str.pop_back(); // убрать \n
+
+    std::string entry = "[" + time_str + "] " + action + "\n";
+
+    // выводим в консоль (или в файл через redirect_output_wrapper)
+    std::cerr << entry;
+    if (logfile.is_open())
+        logfile << entry;
+}
+
+bool saveToFile(const std::map<int, Pipe>& pipes, const std::map<int, Station>& stations, const std::string& filename) {
+    std::ofstream ofs(filename);
+    if (!ofs.is_open()) {
+        std::cout << "Ошибка при открытии файла для записи.\n";
+        return false;
+    }
+
+    ofs << pipes.size() << "\n";
+    for (const auto& [id, p] : pipes)
+        p.savePipe(ofs);
+
+    ofs << stations.size() << "\n";
+    for (const auto& [id, s] : stations)
+        s.saveStation(ofs);
+
+    logAction("Сохранение данных в файл: " + filename);
+    return true;
+}
+
+bool loadFromFile(std::map<int, Pipe>& pipes, std::map<int, Station>& stations, const std::string& filename) {
+    std::ifstream ifs(filename);
+    if (!ifs.is_open()) {
+        std::cout << "Ошибка при открытии файла для чтения.\n";
+        return false;
+    }
+
+    pipes.clear();
+    stations.clear();
+
+    size_t pipeCount, stationCount;
+    ifs >> pipeCount;
+    for (size_t i = 0; i < pipeCount; ++i) {
+        Pipe p;
+        if (Pipe::loadPipe(ifs, p))
+            pipes[p.getId()] = p;
+    }
+
+    ifs >> stationCount;
+    for (size_t i = 0; i < stationCount; ++i) {
+        Station s;
+        if (Station::loadStation(ifs, s))
+            stations[s.getId()] = s;
+    }
+
+    logAction("Загрузка данных из файла: " + filename);
+    return true;
 }

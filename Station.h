@@ -2,17 +2,17 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <map>
 
 class Station {
-    static int MaxID;
-    int id;
+public:
+    static int nextId; // уникальный ID для КС
 
+    int id;
     std::string name;
     int total_workshops = 0;
     int running_workshops = 0;
     int station_class = 0;
-
-public:
 
     int getId() { return id; }
 
@@ -21,6 +21,7 @@ public:
     void readStationFromConsole();
     void manageWorkshop(int delta);
     void print() const;
+    static void findByFilter(const std::map<int, Station>& stations);
 
     //для лога
     std::string getName() const { return name; }
