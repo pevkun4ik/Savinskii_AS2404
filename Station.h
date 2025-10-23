@@ -1,34 +1,35 @@
 #pragma once
-#include <string>
 #include <iostream>
+#include <string>
 #include <fstream>
-#include <map>
+#include <unordered_map>
+using namespace std;
 
 class Station {
-public:
-    static int nextId; // уникальный ID для КС
-
+private:
+    string name;
+    int totalWorkshops;
+    int activeWorkshops;
+    int stationClass;
     int id;
-    std::string name;
-    int total_workshops = 0;
-    int running_workshops = 0;
-    int station_class = 0;
+    static int nextId;
 
-    int getId() { return id; }
+public:
+    Station();
+    int GetId() const;
+    string GetName() const;
+    int GetTotalWorkshops() const;
+    int GetRunningWorkshops() const;
+    int GetStationClass() const;
+    void SetRunningWorkshops(int newVal);
+    void AddStation();
+    void cs_show() const;
+    void cs_save(ofstream& file) const;
+    Station(ifstream& file);
+    int GetNumberofWorkshops() const { return totalWorkshops; }
+    int GetNumberofActiveWorkshops() const { return activeWorkshops; }
 
-    void saveStation(std::ofstream& ofs) const;
-    static bool loadStation(std::ifstream& ifs, Station& s);
-    void readStationFromConsole();
-    void manageWorkshop(int delta);
-    void print() const;
-    static void findByFilter(const std::map<int, Station>& stations);
-
-    //для лога
-    std::string getName() const { return name; }
-    int getTotalWorkshops() const { return total_workshops; }
-    int getRunningWorkshops() const { return running_workshops; }
-    int getStationClass() const { return station_class; }
-
-    friend std::istream& operator>>(std::istream& in, Station& s);
-    friend std::ostream& operator<<(std::ostream& out, const Station& s);
+    static int GetNextId();
+    static void ClearNextId();
+    static void setNextId(const unordered_map<int, Station>& data);
 };

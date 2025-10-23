@@ -1,241 +1,135 @@
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <limits>
-#include <sstream>
-#include <charconv>
-#include <unordered_map>
-#include <map>
-#include "utils.h"
 #include "Pipe.h"
+#include "filters.h"
 #include "Station.h"
+#include "utils.h"
+#include <unordered_map>
+#include <unordered_set>
+#include <iostream>
 #include <chrono>
-#include <format>
 
+using namespace std;
 
+void BatchEditPipes(unordered_map<int, Pipe>& pipes, unordered_set<int>& selected_pipes) {
+    while (true) {
+        // Шаг 1: Выбор фильтра
+        cout << "\n--- Фильтр для труб ---\n"
+             << "1. Все трубы\n"
+             << "2. По ID\n"
+             << "3. По названию\n"
+             << "4. По признаку 'в ремонте'\n"
+             << "0. Назад\n"
+             << "Выберите фильтр (номер): ";
+        int filter_cmd; cin >> filter_cmd;
 
-int main() 
-{
-    std::map<int, Pipe> pipes;
-    std::map<int, Station> stations;
+        switch (filter_cmd) {
+            case 0: return;
+            case 1: SelectAll(pipes, selected_pipes); break;
+            case 2: SelectById(pipes, selected_pipes); break;
+            case 3: {
+                string name;
+                cout << "Введите название трубы: ";
+                cin.ignore();
+                getline(cin, name);
+                FindByName(pipes, selected_pipes, name);
+                break;
+            }
+            case 4: {
+                bool is_working;
+                cout << "Выберите статус (1 - в работе, 0 - в ремонте): ";
+                is_working = GetCorrectNumber(0,1);
+                FindByIsWorking(pipes, selected_pipes, is_working);
+                break;
+            }
+            default: cout << "Неверный выбор. Попробуйте снова.\n"; continue;
+        }
 
-    redirect_output_wrapper cerr_out(std::cerr);
+        // Шаг 2: Редактирование выбранных труб
+        while (true) {
+            cout << "\n--- Редактирование выбранных труб ---\n"
+                 << "1. Показать выбранные трубы\n"
+                 << "2. Изменить статус 'в ремонте' всех выбранных\n"
+                 << "3. Удалить выбранные трубы\n"
+                 << "4. Выбрать подмножество по ID\n"
+                 << "0. Вернуться к фильтру\n"
+                 << "Выберите действие: ";
+            int edit_cmd; cin >> edit_cmd;
 
-    auto now = std::chrono::system_clock::now();
-    std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm tm = *std::localtime(&t);
+            switch (edit_cmd) {
+                case 0: goto filter_restart;
+                case 1: 
+                    for (int id : selected_pipes) pipes[id].ShowPipe();
+                    break;
+                case 2:
+                    for (int id : selected_pipes) {
+                        pipes[id].ChangeRepair();
+                        logAction("Pipe status changed: " + pipes[id].GetName());
+                    }
+                    cout << "Статус изменен для выбранных труб.\n";
+                    break;
+                case 3: {
+                    for (int id : selected_pipes) {
+                        logAction("Pipe deleted: " + pipes[id].GetName());
+                        pipes.erase(id);
+                    }
+                    selected_pipes.clear();
+                    cout << "Выбранные трубы удалены.\n";
+                    break;
+                }
+                case 4: {
+                    unordered_set<int> subset;
+                    SelectById(pipes, subset); // пользователь выбирает подмножество
+                    selected_pipes = subset;
+                    break;
+                }
+                default: cout << "Неверный выбор. Попробуйте снова.\n"; break;
+            }
+        }
+        filter_restart:;
+    }
+}
 
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%d_%m_%Y_%H_%M_%S"); 
-    std::string time_str = oss.str();
+int main() {
+    unordered_map<int, Pipe> pipes;
+    unordered_map<int, Station> stations;
+    unordered_set<int> selected_pipes;
 
-    logfile.open("log_" + time_str + ".txt");
-    if (logfile)
-        cerr_out.redirect(logfile);
-
-    std::cout << "\nЛог будет записываться в файл: log_" << time_str << ".txt\n";
+    auto now = chrono::system_clock::to_time_t(chrono::system_clock::now());
+    logfile.open("log_" + to_string(now) + ".txt");
 
     while (true) {
-        std::cout << "\n--- Меню ---\n"
-                  << "1. Добавить/редактировать Трубу\n"
-                  << "2. Добавить/редактировать КС\n"
-                  << "3. Просмотр всех объектов\n"
-                  << "4. Редактировать признак 'в ремонте' для трубы\n"
-                  << "5. Запуск/Остановка цеха на КС\n"
-                  << "6. Сохранить в файл\n"
-                  << "7. Загрузить из файла\n"
-                  << "8. Удалить трубу\n"
-                  << "9. Удалить КС\n"
-                  << "10. Поиск объектов\n"
-                  << "11. Пакетное редактирование труб\n"
-                  << "0. Выход\n";
-
-        int cmd = readInt("Выберите действие (номер): ", 0, 11);
+        cout << "\n--- Главное меню ---\n"
+             << "1. Добавить трубу\n"
+             << "2. Добавить КС\n"
+             << "3. Показать все объекты\n"
+             << "4. Сохранить в файл\n"
+             << "5. Загрузить из файла\n"
+             << "6. Пакетное редактирование труб\n"
+             << "0. Выход\n"
+             << "Выберите действие (номер): ";
+        int cmd; cin >> cmd;
         switch (cmd) {
-            case 1:
-            {
-                int id = readInt("Введите ID трубы: ", 1, std::numeric_limits<int>::max());
-                auto it = pipes.find(id);
-                if (it != pipes.end()) {
-                    if (!readInt("Труба с таким ID уже существует. Перезаписать? (1 - да, 0 - нет): ", 0, 1))
-                        break;
-                }
-                Pipe p;
-                p.readPipeFromConsole();
-                pipes[id] = p;
-
-                if (id >= Pipe::nextId) Pipe::nextId = id + 1;
-
-                logAction("Пользователь добавил/редактировал трубу с ID " + std::to_string(id) + ".");
-                logAction("Километровая отметка: " + p.getKmMark() +
-                    ", Длина: " + std::to_string(p.getLength()) +
-                    ", Диаметр: " + std::to_string(p.getDiameter()) +
-                    ", В ремонте: " + (p.getInRepair() ? "Да" : "Нет"));
-                break;
-            }
-            case 2:
-            {
-                int id = readInt("Введите ID КС: ", 1, std::numeric_limits<int>::max());
-                auto it = stations.find(id);
-                if (it != stations.end()) {
-                    if (!readInt("КС с таким ID уже существует. Перезаписать? (1 - да, 0 - нет): ", 0, 1))
-                        break;
-                }
-                Station s;
-                s.readStationFromConsole();
-                stations[id] = s;
-
-                if (id >= Station::nextId) Station::nextId = id + 1;
-
-                logAction("Пользователь добавил/редактировал КС с ID " + std::to_string(id) + ".");
-                logAction("Название: " + s.getName() +
-                    ", Всего цехов: " + std::to_string(s.getTotalWorkshops()) +
-                    ", Работающих цехов: " + std::to_string(s.getRunningWorkshops()) +
-                    ", Класс станции: " + std::to_string(s.getStationClass()));
-                break;
-            }
-            case 3:
-                if (pipes.empty())
-                    std::cout << "Труб нет.\n";
-                else {
-                    std::cout << "Трубы:\n";
-                    for (const auto& [id, p] : pipes) {
-                        std::cout << "ID: " << id << "\n";
-                        p.print();
-                        std::cout << "\n";
-                    }
-                }
-                if (stations.empty())
-                    std::cout << "КС нет.\n";
-                else {
-                    std::cout << "КС:\n";
-                    for (const auto& [id, s] : stations) {
-                        std::cout << "ID: " << id << "\n";
-                        s.print();
-                        std::cout << "\n";
-                    }
-                }
-                logAction("Пользователь просмотрел все объекты.");
-                break;
-            case 4:
-            {
-                if (pipes.empty()) {
-                    std::cout << "Труб нет. Сначала добавьте трубу.\n";
-                    break;
-                }
-                int id = readInt("Введите ID трубы для изменения признака 'в ремонте': ", 1, std::numeric_limits<int>::max());
-                auto it = pipes.find(id);
-                if (it == pipes.end()) {
-                    std::cout << "Труба с таким ID не найдена.\n";
-                    break;
-                }
-                it->second.toggleRepair();
-                logAction("Пользователь изменил признак 'в ремонте' для трубы с ID " + std::to_string(id) + ".");
-                logAction("Новое состояние трубы 'в ремонте': " + std::string(it->second.getInRepair() ? "Да" : "Нет"));
-                break;
-            }
-            case 5:
-            {
-                if (stations.empty()) {
-                    std::cout << "КС нет. Сначала добавьте КС.\n";
-                    break;
-                }
-                int id = readInt("Введите ID КС для запуска/остановки цеха: ", 1, std::numeric_limits<int>::max());
-                auto it = stations.find(id);
-                if (it == stations.end()) {
-                    std::cout << "КС с таким ID не найдена.\n";
-                    break;
-                }
-                std::cout << "1 - Запустить цех\n2 - Остановить цех\n";
-                int sub = readInt("Выберите: ", 1, 2);
-                it->second.manageWorkshop(sub == 1 ? 1 : -1);
-                if (sub == 1)
-                    logAction("Пользователь запустил цех на КС с ID " + std::to_string(id) + ".");
-                else
-                    logAction("Пользователь остановил цех на КС с ID " + std::to_string(id) + ".");
-                logAction("Текущее число работающих цехов: " + std::to_string(it->second.getRunningWorkshops()));
-                break;
-            }
-            case 6:
-                if (pipes.empty() && stations.empty()) {
-                    std::cout << "Нет данных для сохранения.\n";
-                    break;
-                }
-                {
-                    std::string fn = readLineNonEmpty("Введите имя файла для сохранения: ");
-                    saveToFile(pipes, stations, fn);
-                    logAction("Пользователь сохранил данные в файл: " + fn);
-                }
-                break;
-            case 7:
-                {
-                    std::string fn = readLineNonEmpty("Введите имя файла для загрузки: ");
-                    std::map<int, Pipe> tmpPipes;
-                    std::map<int, Station> tmpStations;
-                    if (loadFromFile(tmpPipes, tmpStations, fn)) {
-                        pipes = std::move(tmpPipes);
-                        stations = std::move(tmpStations);
-                        logAction("Пользователь загрузил данные из файла: " + fn);
-                    } else {
-                        std::cout << "Не удалось загрузить объекты из файла.\n";
-                    }
-                }
-                break;
-            case 8:
-            {
-                if (pipes.empty()) {
-                    std::cout << "Труб нет для удаления.\n";
-                    break;
-                }
-                int id = readInt("Введите ID трубы для удаления: ", 1, std::numeric_limits<int>::max());
-                auto it = pipes.find(id);
-                if (it == pipes.end()) {
-                    std::cout << "Труба с таким ID не найдена.\n";
-                    break;
-                }
-                pipes.erase(it);
-                logAction("Пользователь удалил трубу с ID " + std::to_string(id) + ".");
-                std::cout << "Труба с ID " << id << " удалена.\n";
-                break;
-            }
-            case 9:
-            {
-                if (stations.empty()) {
-                    std::cout << "КС нет для удаления.\n";
-                    break;
-                }
-                int id = readInt("Введите ID КС для удаления: ", 1, std::numeric_limits<int>::max());
-                auto it = stations.find(id);
-                if (it == stations.end()) {
-                    std::cout << "КС с таким ID не найдена.\n";
-                    break;
-                }
-                stations.erase(it);
-                logAction("Пользователь удалил КС с ID " + std::to_string(id) + ".");
-                std::cout << "КС с ID " << id << " удалена.\n";
-                break;
-            }
-            case 10: {
-                std::cout << "1. Поиск труб\n2. Поиск КС\n";
-                int sub = readInt("Выберите: ", 1, 2);
-                if (sub == 1)
-                    Pipe::findByFilter(pipes);
-                else
-                    Station::findByFilter(stations);
-                break;
-            }
-            case 11: {
-                Pipe::batchEdit(pipes);
-                break;
-            }
-            case 0:
-                if (logfile.is_open())
-                    logfile.close();
-                std::cout << "Выход. До свидания.\n";
+            case 0: 
+                if(logfile.is_open()) logfile.close(); 
                 return 0;
-            default:
-                std::cout << "Некорректный пункт меню.\n";
+            case 1: { 
+                Pipe p; 
+                p.AddPipe(); 
+                pipes[p.GetId()] = p; 
+                logAction("Pipe added: " + p.GetName()); 
+                break; 
+            }
+            case 2: { 
+                Station s; 
+                s.AddStation(); 
+                stations[s.GetId()] = s; 
+                logAction("Station added: " + s.GetName()); 
+                break; 
+            }
+            case 3: ShowAll(pipes, stations); break;
+            case 4: SaveAll(pipes, stations); break;
+            case 5: LoadAll(pipes, stations); break;
+            case 6: BatchEditPipes(pipes, selected_pipes); break;
+            default: cout << "Неверный выбор. Попробуйте снова.\n"; break;
         }
     }
-    return 0;
 }

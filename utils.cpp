@@ -1,118 +1,92 @@
-#include "Pipe.h"
-#include "Station.h"
-#include <fstream>
 #include "utils.h"
+#include <iostream>
+#include <fstream>
+#include <chrono>
+#include <ctime>
+using namespace std;
 
-void clearStdin() {
-    std::cin.clear();
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+ofstream logfile;
+
+void logAction(const string& action) {
+    auto now = chrono::system_clock::to_time_t(chrono::system_clock::now());
+    string timestamp = ctime(&now); timestamp.pop_back();
+    string entry = "[" + timestamp + "] " + action + "\n";
+    cerr << entry;
+    if (logfile.is_open()) logfile << entry;
 }
 
-std::string trim(const std::string& str) {
-    auto start = str.find_first_not_of(" \t\r\n");
-    if (start == std::string::npos) return "";
-    auto end = str.find_last_not_of(" \t\r\n");
-    return str.substr(start, end - start + 1);
+void ShowAll(const unordered_map<int, Pipe>& pipes, const unordered_map<int, Station>& stations) {
+    if (pipes.empty()) cout << "No pipes\n"; else for (auto& [_, p] : pipes) p.ShowPipe();
+    if (stations.empty()) cout << "No stations\n"; else for (auto& [_, s] : stations) s.cs_show();
 }
 
-std::string readLineNonEmpty(const std::string& message) {
-    for (;;) {
-        std::cout << message;
-        std::string s;
-        if (!std::getline(std::cin >> std::ws, s)) {
-            std::cin.clear();
-            continue;
-        }
-        s = trim(s);
-        if (!s.empty()) return s;
-        std::cout << "Ввод не может быть пустым. Повторите.\n";
-    }
+void SaveAll(unordered_map<int, Pipe>& pipes, unordered_map<int, Station>& stations) {
+    cout << "Enter filename: "; string fn; getline(cin >> ws, fn);
+    ofstream file(fn);
+    if (!file.is_open()) { cout << "Cannot open file!\n"; return; }
+    for (auto& [_, p] : pipes) p.pipe_save(file);
+    for (auto& [_, s] : stations) s.cs_save(file);
+    cout << "Saved!\n";
+    logAction("Saved to file " + fn);
 }
 
-double readDouble(const std::string& message, double minVal, double maxVal) {
-    double val;
-    std::cout << message;
-    for (;;) {
-        if (std::cin >> val && val >= minVal && val <= maxVal) {
-            return val;
-        }
-        clearStdin();
-        std::cout << "Некорректный ввод числа с плавающей точкой. Попробуйте снова: ";
+void LoadAll(unordered_map<int, Pipe>& pipes, unordered_map<int, Station>& stations) {
+    cout << "Enter filename: "; string fn; getline(cin >> ws, fn);
+    ifstream file(fn);
+    if (!file.is_open()) { cout << "Cannot open file!\n"; return; }
+
+    pipes.clear(); stations.clear();
+    string line;
+    while (file >> line) {
+        if (line == "Pipe") { Pipe p(file); pipes[p.GetId()] = p; }
+        else if (line == "Station") { Station s(file); stations[s.GetId()] = s; }
     }
+    Pipe::set_currentid(pipes);
+    Station::setNextId(stations);
+    cout << "Loaded!\n";
+    logAction("Loaded from file " + fn);
 }
 
-int readInt(const std::string& message, int minVal, int maxVal) {
-    int val;
-    std::cout << message;
-    for (;;) {
-        if (std::cin >> val && val >= minVal && val <= maxVal) {
-            return val;
-        }
-        clearStdin();
-        std::cout << "Некорректный ввод целого числа. Попробуйте снова: ";
+void BatchEditPipes(unordered_map<int, Pipe>& pipes, const unordered_set<int>& selected) {
+    if (selected.empty()) { cout << "No pipes selected.\n"; return; }
+    cout << "1. Toggle repair\n2. Delete pipes\nChoose action: ";
+    int choice = GetCorrectNumber(1,2);
+    for (int id : selected) {
+        if (!pipes.count(id)) continue;
+        if (choice == 1) { pipes[id].ChangeRepair(); logAction("Pipe ID " + to_string(id) + " repair toggled."); }
+        else { pipes.erase(id); logAction("Pipe ID " + to_string(id) + " deleted."); }
     }
+    cout << "Batch edit done.\n";
 }
 
-std::ofstream logfile("log.txt", std::ios::app);
-
-void logAction(const std::string& action) {
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-    std::string time_str = std::ctime(&now_c);
-    time_str.pop_back(); // убрать \n
-
-    std::string entry = "[" + time_str + "] " + action + "\n";
-
-    // выводим в консоль (или в файл через redirect_output_wrapper)
-    std::cerr << entry;
-    if (logfile.is_open())
-        logfile << entry;
+void FilterPipesByName(const unordered_map<int, Pipe>& pipes, unordered_set<int>& selected) {
+    string name;
+    cout << "Enter pipe name to search: "; getline(cin >> ws, name);
+    selected.clear();
+    for (auto& [id,p] : pipes) if (p.GetName().find(name) != string::npos) selected.insert(id);
 }
 
-bool saveToFile(const std::map<int, Pipe>& pipes, const std::map<int, Station>& stations, const std::string& filename) {
-    std::ofstream ofs(filename);
-    if (!ofs.is_open()) {
-        std::cout << "Ошибка при открытии файла для записи.\n";
-        return false;
-    }
-
-    ofs << pipes.size() << "\n";
-    for (const auto& [id, p] : pipes)
-        p.savePipe(ofs);
-
-    ofs << stations.size() << "\n";
-    for (const auto& [id, s] : stations)
-        s.saveStation(ofs);
-
-    logAction("Сохранение данных в файл: " + filename);
-    return true;
+void FilterPipesByRepair(const unordered_map<int, Pipe>& pipes, unordered_set<int>& selected) {
+    cout << "Enter repair status (1/0): ";
+    int r = GetCorrectNumber(0,1);
+    selected.clear();
+    for (auto& [id,p] : pipes) if (p.GetRepair() == r) selected.insert(id);
 }
 
-bool loadFromFile(std::map<int, Pipe>& pipes, std::map<int, Station>& stations, const std::string& filename) {
-    std::ifstream ifs(filename);
-    if (!ifs.is_open()) {
-        std::cout << "Ошибка при открытии файла для чтения.\n";
-        return false;
+void FilterStationsByName(const unordered_map<int, Station>& stations, unordered_set<int>& selected) {
+    string name;
+    cout << "Enter station name to search: "; getline(cin >> ws, name);
+    selected.clear();
+    for (auto& [id,s] : stations) if (s.GetName().find(name) != string::npos) selected.insert(id);
+}
+
+void FilterStationsByUnused(const unordered_map<int, Station>& stations, unordered_set<int>& selected) {
+    cout << "Enter minimum % of non-operating workshops: ";
+    double pct; cin >> pct;
+    selected.clear();
+    for (auto& [id,s] : stations) {
+        if (s.GetTotalWorkshops() == 0) continue;
+        double unused = (s.GetTotalWorkshops() - s.GetRunningWorkshops()) * 100.0 / s.GetTotalWorkshops();
+        if (unused >= pct) selected.insert(id);
     }
-
-    pipes.clear();
-    stations.clear();
-
-    size_t pipeCount, stationCount;
-    ifs >> pipeCount;
-    for (size_t i = 0; i < pipeCount; ++i) {
-        Pipe p;
-        if (Pipe::loadPipe(ifs, p))
-            pipes[p.getId()] = p;
-    }
-
-    ifs >> stationCount;
-    for (size_t i = 0; i < stationCount; ++i) {
-        Station s;
-        if (Station::loadStation(ifs, s))
-            stations[s.getId()] = s;
-    }
-
-    logAction("Загрузка данных из файла: " + filename);
-    return true;
 }
