@@ -24,10 +24,10 @@ void Pipe::AddPipe() {
 }
 
 void Pipe::ShowPipe() const {
-    cout << "ID: " << id << "\nName: " << name
+    cout << "PIPE ID: " << id << "\nName: " << name
          << "\nLength: " << length
          << "\nDiameter: " << diameter
-         << "\nRepair: " << (repair ? "Yes" : "No") << endl;
+         << "\nRepair: " << (repair ? "Yes" : "No") << "\n" << endl;
 }
 
 void Pipe::pipe_save(ofstream& file) const {

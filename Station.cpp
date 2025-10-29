@@ -14,7 +14,6 @@ string Station::GetName() const { return name; }
 int Station::GetTotalWorkshops() const { return totalWorkshops; }
 int Station::GetRunningWorkshops() const { return activeWorkshops; }
 int Station::GetStationClass() const { return stationClass; }
-void Station::SetRunningWorkshops(int newVal) { activeWorkshops = newVal; }
 
 void Station::AddStation() {
     cout << "Station name: "; getline(cin >> ws, name);
@@ -25,11 +24,11 @@ void Station::AddStation() {
 }
 
 void Station::cs_show() const {
-    cout << "ID: " << id
+    cout << "STATION ID: " << id
          << "\nName: " << name
          << "\nTotal workshops: " << totalWorkshops
          << "\nActive workshops: " << activeWorkshops
-         << "\nStation class: " << stationClass << endl;
+         << "\nStation class: " << stationClass << "\n" << endl;
 }
 
 void Station::cs_save(ofstream& file) const {
@@ -45,4 +44,12 @@ Station::Station(ifstream& file) {
 
 int Station::GetNextId() { return nextId; }
 void Station::ClearNextId() { nextId = 0; }
-void Station::setNextId(const unordered_map<int, Station>& data) { nextId = Get_maxid(data); }
+void Station::setNextId(const unordered_map<int, Station>& stations) { nextId = Get_maxid(stations); }
+
+void Station::SetRunningWorkshops(int n) {
+    if (n >= 0 && n <= totalWorkshops) {
+        activeWorkshops = n;
+    } else {
+        cout << "Invalid number of active workshops. It must be between 0 and total workshops." << endl;
+    }
+}
