@@ -45,6 +45,10 @@
         "__node_handle": "cpp",
         "memory": "cpp",
         "unordered_map": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "forward_list": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp",
+        "ratio": "cpp"
     }
 }

@@ -11,12 +11,8 @@ using namespace std;
 int main() {
     unordered_map<int, Pipe> pipes;
     unordered_map<int, Station> stations;
-    unordered_set<int> selected_pipes;
-    unordered_set<int> selected_stations;
-
-    // Создаем уникальный лог-файл с временем запуска
-    auto now = chrono::system_clock::to_time_t(chrono::system_clock::now());
-    logfile.open("log_" + to_string(now) + ".txt");
+    unordered_set<int> selected_pipes;//!!!
+    unordered_set<int> selected_stations;//!!!
 
     while (true) {
         cout << "\n--- Главное меню ---\n"
@@ -27,29 +23,25 @@ int main() {
              << "5. Загрузить из файла\n"
              << "6. Пакетное редактирование труб\n"
              << "7. Пакетное редактирование станций\n"
-             << "0. Выход\n"
-             << "Выберите действие (номер): ";
-        int cmd; 
-        cin >> cmd;
+             << "0. Выход\n";
+        int cmd;
+        cmd = inputInt("Выберите действие (номер): ", 0, 7);
 
         switch (cmd) {
             case 0: 
-                if(logfile.is_open()) logfile.close(); 
                 return 0;
 
             case 1: { 
                 Pipe p; 
                 p.AddPipe(); 
-                pipes[p.GetId()] = p; 
-                logAction("Добавлена труба: " + p.GetName()); 
+                pipes[p.GetId()] = p; //!!!
                 break; 
             }
 
             case 2: { 
                 Station s; 
                 s.AddStation(); 
-                stations[s.GetId()] = s; 
-                logAction("Добавлена станция: " + s.GetName()); 
+                stations[s.GetId()] = s; //!!!
                 break; 
             }
 
