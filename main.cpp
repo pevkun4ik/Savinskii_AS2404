@@ -1,57 +1,87 @@
-#include "Pipe.h"
-#include "Station.h"
+#include "pipe.h"
+#include "cs.h"
 #include "utils.h"
 #include "filters.h"
-#include <unordered_map>
-#include <unordered_set>
+#include <string>
 #include <iostream>
+#include <unordered_map>
+#include "menu.h"
+#include "logging.h"
+#include <format>
 #include <chrono>
+
+
 using namespace std;
+using namespace chrono;
+
+void PrintMainMenu()
+{
+    cout << "Choose command" << endl;
+    cout << "1. Working with pipes" << endl;
+    cout << "2. Working with CS" << endl;
+    cout << "3. Show all objects" << endl;
+    cout << "4. Save" << endl;
+    cout << "5. Download" << endl;
+    cout << "6. Exit " << endl;
+}
 
 int main() {
-    unordered_map<int, Pipe> pipes;
-    unordered_map<int, Station> stations;
-    unordered_set<int> selected_pipes;//!!!
-    unordered_set<int> selected_stations;//!!!
+    redirect_output_wrapper cerr_out(cerr);
 
+    auto now = system_clock::now();
+    string timestamp = format("{:%Y-%m-%d_%H-%M-%S}", floor<seconds>(now));
+    string filename = format("log_{}.txt", timestamp);
+
+    ofstream logfile(filename);
+    if (logfile)
+        cerr_out.redirect(logfile);
+
+    unordered_map<int, Pipe> pipesmap;
+    unordered_set<int> selected_pipes;
+
+    unordered_map<int, CS> cssmap; 
+    unordered_set<int> selected_cs;
+
+    int command;
     while (true) {
-        cout << "\n--- Главное меню ---\n"
-             << "1. Добавить трубу\n"
-             << "2. Добавить станцию\n"
-             << "3. Показать все объекты\n"
-             << "4. Сохранить в файл\n"
-             << "5. Загрузить из файла\n"
-             << "6. Пакетное редактирование труб\n"
-             << "7. Пакетное редактирование станций\n"
-             << "0. Выход\n";
-        int cmd;
-        cmd = inputInt("Выберите действие (номер): ", 0, 7);
-
-        switch (cmd) {
-            case 0: 
-                return 0;
-
-            case 1: { 
-                Pipe p; 
-                p.AddPipe(); 
-                pipes[p.GetId()] = p; //!!!
-                break; 
-            }
-
-            case 2: { 
-                Station s; 
-                s.AddStation(); 
-                stations[s.GetId()] = s; //!!!
-                break; 
-            }
-
-            case 3: ShowAll(pipes, stations); break;
-            case 4: SaveAll(pipes, stations); break;
-            case 5: LoadAll(pipes, stations); break;
-            case 6: BatchEditPipes(pipes, selected_pipes); break;
-            case 7: BatchEditStations(stations, selected_stations); break;
-
-            default: cout << "Неверный выбор. Попробуйте снова.\n"; break;
+        PrintMainMenu();
+        command = GetCorrectNumber(1, 6);
+        switch (command) {
+        case 1:
+        {
+            PipesMenu(pipesmap);
+            break;
+        }
+   
+        case 2:
+        {
+            CSMenu(cssmap);
+            break;
+        }
+        case 3:
+        {
+            ShowAll(pipesmap, cssmap);
+            break;
+        };
+        case 4:
+        {
+            SaveAll(pipesmap, cssmap);
+            break;
+        };
+        
+        case 5:
+        {
+		    selected_pipes.clear();
+		    selected_cs.clear();
+            Download(pipesmap, cssmap);
+            break;
+        }
+        case 6:
+        {
+            return 0;
+            break;
+        }
         }
     }
+    return 0;
 }

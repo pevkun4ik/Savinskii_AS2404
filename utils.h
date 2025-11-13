@@ -1,86 +1,76 @@
 #pragma once
 #include <iostream>
-#include <unordered_map>
+#include "pipe.h"
+#include "cs.h"
+#include <unordered_map>   
 #include <unordered_set>
-#include <fstream>
+#include <typeinfo>
 #include <string>
-#include "Pipe.h"
-#include "Station.h"
+using namespace std;
 
-//using namespace std;
+#define INPUT_LINE(in, str) \
+    getline(in >> ws, str); \
+    std::cerr << str << std::endl;
 
-// void logInput(const std::string& input);
-
-// // Функции-обёртки для безопасного логирования ввода пользователя
-std::string inputString(const std::string& prompt);
-int inputInt(const std::string& prompt, int min, int max);
-
-// Лог-файл для действий
-extern ofstream logfile;
-void logAction(const std::string& message);
-
-// Ввод корректного числа
 template <typename T>
-T GetCorrectNumber(T min, T max) {
+T GetCorrectNumber(T min, T max)
+{
     T value;
-    while ((cin >> value).fail() || cin.peek() != '\n' || value < min || value > max) {
+    while ((cin >> value).fail()
+        || cin.peek() != '\n'
+        || value < min || value > max)
+    {
         cin.clear();
-        cin.ignore(10000, '\n');
-        cout << "\nВведите число от " << min << " до " << max << ": ";
+        cout << "\nEnter a right number from " << min << " to " << max << "\n ";
     }
+    cerr << value << endl;
     return value;
 }
 
-// Выбор всех объектов
 template<typename T>
-void SelectAll(const unordered_map<int, T>& objects, unordered_set<int>& selected) {
-    selected.clear();
-    for (const auto& [id, obj] : objects) 
-        selected.insert(id);
+void load(ifstream& file, unordered_map<int, T>& map)
+{
+    T object(file);
+    map.emplace(object.GetId(), object);
 }
 
-// Выбор подмножества по ID
 template<typename T>
-void SelectById(const unordered_map<int, T>& objects, unordered_set<int>& selected) {
-    selected.clear();
-    while (true) {
-        int id;
-        cout << "Введите ID (0 для выхода): ";
-        id = GetCorrectNumber(0, 10000);
-        if (id == 0) break;
-        if (objects.count(id)) //!!!
-            selected.insert(id);
-        else cout << "Такого ID нет.\n";
+void PrintSelected(const std::unordered_map<int, T>& set, const std::unordered_set<int>& subset) {
+    if (set.empty()) {
+        std::cout << "No selected items." << std::endl;
+    }
+    else {
+        for (const int& id : subset) {
+            auto it = set.find(id);
+            if (it != set.end()) {
+                it->second.Show();
+            }
+        }
     }
 }
 
-// Загрузка объектов из файла
 template<typename T>
-void load(ifstream& file, unordered_map<int, T>& map) {
-    T object(file);
-    map[object.GetId()] = object;//!!!!
+int Get_maxid(const std::unordered_map<int, T>& objs) {
+    int id = 0;
+    for (auto& [k, v] : objs) {
+        if (k > id) 
+            id = k;
+    }
+    return id;
 }
 
-// Получение максимального ID
+void SaveAll(unordered_map<int, Pipe>& pipemap, unordered_map<int, CS>& cssmap);
+void ShowAll(unordered_map<int, Pipe> pipemap, unordered_map<int, CS> cssmap);
+void Download(std::unordered_map<int, Pipe>& pipesmap, std::unordered_map<int, CS>& cs);
+void change_selectedPipes_workStatus(unordered_map<int, Pipe>& pipes, const unordered_set<int>& selected_pipes);
+void EditCS(unordered_map<int, CS>& cssmap, const unordered_set<int>& selected_cs);
+
 template<typename T>
-int Get_maxid(const unordered_map<int, T>& objs) {
-    int max_id = 0;
-    for (auto& [id, obj] : objs)
-        if (id > max_id) 
-            max_id = id;
-    return max_id;
+void erase_obj(std::unordered_map<int, T>& objs, const int id) {
+    if (objs.count(id)) {
+        objs.erase(id);
+    }
+    else {
+        std::cout << "There is not object with id " << id << std::endl;
+    }
 }
-
-// Сохранение всех объектов
-void SaveAll(unordered_map<int, Pipe>& pipes, unordered_map<int, Station>& stations);
-void ShowAll(const unordered_map<int, Pipe>& pipes, const unordered_map<int, Station>& stations);
-void LoadAll(unordered_map<int, Pipe>& pipes, unordered_map<int, Station>& stations);
-
-// Редактирование выбранных труб
-void BatchEditPipes(unordered_map<int, Pipe>& pipes, unordered_set<int>& selected_pipes);
-
-// Редактирование выбранных станций
-void BatchEditStations(unordered_map<int, Station>& stations, unordered_set<int>& selected_stations);
-
-// Изменение статуса выбранных труб
-void ChangeSelectedPipesStatus(unordered_map<int, Pipe>& pipes, const unordered_set<int>& selected_pipes);

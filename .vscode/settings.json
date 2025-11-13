@@ -49,6 +49,7 @@
         "forward_list": "cpp",
         "unordered_set": "cpp",
         "vector": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "__config": "cpp"
     }
 }
