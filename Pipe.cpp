@@ -1,7 +1,6 @@
 #include "pipe.h"
 #include <iostream>
 #include "utils.h"
-
 #include<unordered_map>
  
 using namespace std;
@@ -12,7 +11,7 @@ int Pipe::Get_currentid() {
 	return Pipe::current_pipeid;
 }
 
-int Pipe::GetId()
+int Pipe::GetId() const
 {
 	return this->id;
 }
@@ -31,6 +30,42 @@ void Pipe::ChangeRepair() {
 
 void Pipe::Clear_currentid() {
 	Pipe::current_pipeid = 1;
+}
+
+
+bool Pipe::IsUsing() const {
+	return (this->links[0]) || (this->links[1]);
+}
+
+
+vector<int> Pipe::get_links() const {
+	return this->links;
+}
+
+
+int Pipe::get_diameter() const {
+	return this->diameter;
+}
+
+
+bool Pipe::set_links(const int& out, const int& in) {
+	this->links = { out, in };
+	return 1;
+}
+
+
+Pipe::Pipe(const int& dia)
+{
+	cout << "Name pipe name: " << endl;
+	INPUT_LINE(cin, this->name);
+	cout << "Enter the pipe length: " << endl;
+	length = GetCorrectNumber(1, 10000);
+	cout << "diameter : ";
+	diameter = dia;
+	cout << dia << endl;
+	cout << "Enter the repair status(1/0): " << endl;
+	repair = GetCorrectNumber(0, 1);
+	id = ++current_pipeid;
 }
 
 void Pipe::set_currentid(const unordered_map<int, Pipe>& data) {
@@ -54,6 +89,8 @@ void Pipe::pipe_save(ofstream& file) const
 	file << length << endl;
 	file << diameter << endl;
 	file << repair << endl;
+	file << links[0] << endl;
+	file << links[1] << endl;
 }
 
 Pipe::Pipe(ifstream& file)
@@ -64,6 +101,8 @@ Pipe::Pipe(ifstream& file)
 	file >> this->length;
 	file >> this->diameter;
 	file >> this->repair;
+	file >> this->links[0];
+	file >> this->links[1];
 }
 
 void Pipe::AddPipe()
@@ -73,7 +112,7 @@ void Pipe::AddPipe()
 	cout << "Enter the pipe length: " << endl;
 	length = GetCorrectNumber(1, 10000);
 	cout << "Enter the pipe diameter : " << endl;
-	diameter = GetCorrectNumber(1, 10000);
+	diameter = GetCorrectDiameter();
 	cout << "Enter the repair status(1/0): " << endl;
 	repair = GetCorrectNumber(0, 1);
 	id = ++current_pipeid;
@@ -89,8 +128,15 @@ void Pipe::Show() const
 	{
 		cout << "ID " << id << endl;
 		cout << "Name: " << name << endl;
-		cout << " Length: " << length << endl;
-		cout << " Diameter: " << diameter << endl;
-		cout << " Repair: " << repair << endl;
+		cout << "Length: " << length << endl;
+		cout << "Diameter: " << diameter << endl;
+		cout << "Repair: " << repair << endl;
+		cout << "links{" << endl
+			<< "   " << "out: "
+			<< links[0] << " " << endl
+			<< "   " << "in: "
+			<< links[1] << " "
+			<< endl << "}" << endl
+			<< endl;
 	}
 }

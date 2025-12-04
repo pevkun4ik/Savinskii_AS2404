@@ -1,28 +1,26 @@
-#include "pipe.h"
-#include "cs.h"
-#include "utils.h"
 #include "filters.h"
 #include <string>
 #include <iostream>
-#include <unordered_map>
 #include "menu.h"
 #include "logging.h"
 #include <format>
 #include <chrono>
-
+#include "GN.h"
 
 using namespace std;
 using namespace chrono;
+
 
 void PrintMainMenu()
 {
     cout << "Choose command" << endl;
     cout << "1. Working with pipes" << endl;
     cout << "2. Working with CS" << endl;
-    cout << "3. Show all objects" << endl;
-    cout << "4. Save" << endl;
-    cout << "5. Download" << endl;
-    cout << "6. Exit " << endl;
+    cout << "3. Gas Network" << endl;
+    cout << "4. Show all objects" << endl;
+    cout << "5. Save" << endl;
+    cout << "6. Download" << endl;
+    cout << "7. Exit " << endl;
 }
 
 int main() {
@@ -33,50 +31,51 @@ int main() {
     string filename = format("log_{}.txt", timestamp);
 
     ofstream logfile(filename);
+
     if (logfile)
         cerr_out.redirect(logfile);
 
-    unordered_map<int, Pipe> pipesmap;
-    unordered_set<int> selected_pipes;
+    GasNetwork gnet;
 
-    unordered_map<int, CS> cssmap; 
-    unordered_set<int> selected_cs;
 
     int command;
     while (true) {
         PrintMainMenu();
-        command = GetCorrectNumber(1, 6);
+        command = GetCorrectNumber(1, 7);
         switch (command) {
         case 1:
         {
-            PipesMenu(pipesmap);
+            PipesMenu(gnet);
             break;
         }
    
         case 2:
         {
-            CSMenu(cssmap);
+            CSMenu(gnet);
             break;
         }
         case 3:
         {
-            ShowAll(pipesmap, cssmap);
+            GNetwork_menu(gnet);
             break;
-        };
+        }
         case 4:
         {
-            SaveAll(pipesmap, cssmap);
+            gnet.ShowAll();
+            break;
+        };
+        case 5:
+        {
+            gnet.SaveAll();
             break;
         };
         
-        case 5:
-        {
-		    selected_pipes.clear();
-		    selected_cs.clear();
-            Download(pipesmap, cssmap);
-            break;
-        }
         case 6:
+        {
+            gnet.Download();
+            break;
+        };
+        case 7:
         {
             return 0;
             break;
