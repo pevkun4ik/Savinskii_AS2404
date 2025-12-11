@@ -40,7 +40,7 @@ void GasNetwork::SaveAll()
 {
 	cout << "Enter a file name" << endl;
 	string filename;
-	getline(cin >> ws, filename);
+	INPUT_LINE(std::cin, filename);
 	ofstream file(filename);
 	if (file.is_open())
 	{
@@ -63,9 +63,8 @@ void GasNetwork::Download() {
 	string filename = "-1";
 
 	cout << "Enter a file name" << endl;
-	getline(cin >> ws, filename);
+	INPUT_LINE(std::cin, filename);
 	ifstream file(filename);
-
 
 	if (file.is_open()) {
 		this->pipesmap.clear();

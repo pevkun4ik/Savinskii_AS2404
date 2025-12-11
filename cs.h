@@ -40,7 +40,7 @@ public:
     std::vector<std::unordered_set<int>> get_links() const;
     bool IsUsing() const;
     bool addLink(const int& pos, const int& id);
-    bool deleteLink(const int& pos, const int& id);
+    bool disconnectLink(const int& pos, const int& id);
 
     void set_links(std::ifstream& file, const int& pos);
 };

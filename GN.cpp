@@ -20,7 +20,7 @@ void GasNetwork::addCS() {
 }
 
 
-void GasNetwork::delete_selectedPipes() {
+void GasNetwork::disconnect_selectedPipes() {
     int counter = 0;
     for (auto it = this->selected_pipes.begin(); it != this->selected_pipes.end();) {
         if (!this->pipesmap.at(*it).IsUsing()) {
@@ -37,7 +37,7 @@ void GasNetwork::delete_selectedPipes() {
 }
 
 
-void GasNetwork::delete_selectedCS() {
+void GasNetwork::disconnect_selectedCS() {
     int counter = 0;
     for (auto it = this->selected_cs.begin(); it != this->selected_cs.end();) {
         if (!this->cssmap.at(*it).IsUsing()) {
@@ -61,7 +61,7 @@ void GasNetwork::createGraph() {
         auto pipes = cs.get_links();
         if (pipes[1].size()) {
             for (const auto& pipe_id : pipes[1])
-                this->graph[id].emplace(this->pipesmap.at(pipe_id).get_links()[1]);
+                this->graph[id].emplace(this->pipesmap.at(pipe_id).get_links().second);
                 
         }
 
@@ -141,17 +141,17 @@ bool GasNetwork::make_TS() {
 }
 
 
-void GasNetwork::delete_GraphPipe(Pipe& pipe) {
-    this->cssmap.at(pipe.get_links()[0]).deleteLink(1, pipe.GetId());
-    this->cssmap.at(pipe.get_links()[1]).deleteLink(0, pipe.GetId());
+void GasNetwork::disconnect_GraphPipe(Pipe& pipe) {
+    this->cssmap.at(pipe.get_links().first).disconnectLink(1, pipe.GetId());
+    this->cssmap.at(pipe.get_links().second).disconnectLink(0, pipe.GetId());
     pipe.set_links(0, 0);
 }
 
 
-void GasNetwork::delete_GraphCS(CS& cs) {
+void GasNetwork::disconnect_GraphCS(CS& cs) { 
     for (auto& neig : cs.get_links()) {
         for (auto& pipe : neig) {
-            this->delete_GraphPipe(this->pipesmap.at(pipe));
+            this->disconnect_GraphPipe(this->pipesmap.at(pipe));
         }
     }
 }
@@ -159,7 +159,7 @@ void GasNetwork::delete_GraphCS(CS& cs) {
 
 void GasNetwork::clearGraph() {
     for (auto& [id, _] : this->graph) {
-        this->delete_GraphCS(this->cssmap.at(id));
+        this->disconnect_GraphCS(this->cssmap.at(id));
     }
 }
 
@@ -182,7 +182,7 @@ void GasNetwork::delPipe() {
             cout << "do you really want to delete cs (0-no, 1-yes)";
             a = GetCorrectNumber(0, 1);
             if (a == 1)
-                this->delete_GraphPipe(this->pipesmap.at(id));
+                this->disconnect_GraphPipe(this->pipesmap.at(id));
             else
                 break;
     }
@@ -206,7 +206,7 @@ void GasNetwork::delCS() {
             cout << "do you really want to delete cs (0-no, 1-yes)";
             b = GetCorrectNumber(0, 1);
             if (b == 1)
-                this->delete_GraphCS(this->cssmap.at(id));
+                this->disconnect_GraphCS(this->cssmap.at(id));
             else
                 break;
     }

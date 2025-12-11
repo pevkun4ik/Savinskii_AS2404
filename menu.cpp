@@ -166,7 +166,7 @@ void EditPipesMenu(GasNetwork& gnet) {
         }
         case 2:
         {
-            gnet.delete_selectedPipes();
+            gnet.disconnect_selectedPipes();
             break;
         }
         }
@@ -218,7 +218,7 @@ void PrintSelectedCSMenu() {
     cout << "Choose command" << endl;
     cout << "0. Exit" << endl;
     cout << "1. Filter" << endl;
-    cout << "2. See selected cs" << endl;//
+    cout << "2. See selected cs" << endl;
     cout << "3. Edit selected cs" << endl;
     cout << "4. Choose ids from selected" << endl;
     cout << "5. Remove from selected" << endl;
@@ -337,7 +337,7 @@ void EditCSMenu(GasNetwork& gnet) {
         }
         case 2:
         {
-            gnet.delete_selectedCS();
+            gnet.disconnect_selectedCS();
             break;
         }
         }

@@ -32,14 +32,12 @@ void Pipe::Clear_currentid() {
 	Pipe::current_pipeid = 1;
 }
 
-
 bool Pipe::IsUsing() const {
-	return (this->links[0]) || (this->links[1]);
+	return links.first != 0 || links.second != 0;
 }
 
-
-vector<int> Pipe::get_links() const {
-	return this->links;
+pair<int, int> Pipe::get_links() const {
+    return this->links;
 }
 
 
@@ -89,8 +87,8 @@ void Pipe::pipe_save(ofstream& file) const
 	file << length << endl;
 	file << diameter << endl;
 	file << repair << endl;
-	file << links[0] << endl;
-	file << links[1] << endl;
+	file << links.first << endl;
+	file << links.second << endl;
 }
 
 Pipe::Pipe(ifstream& file)
@@ -101,8 +99,8 @@ Pipe::Pipe(ifstream& file)
 	file >> this->length;
 	file >> this->diameter;
 	file >> this->repair;
-	file >> this->links[0];
-	file >> this->links[1];
+	file >> this->links.first;
+	file >> this->links.second;
 }
 
 void Pipe::AddPipe()
@@ -133,9 +131,9 @@ void Pipe::Show() const
 		cout << "Repair: " << repair << endl;
 		cout << "links{" << endl
 			<< "   " << "out: "
-			<< links[0] << " " << endl
+			<< links.first << " " << endl
 			<< "   " << "in: "
-			<< links[1] << " "
+			<< links.second << " "
 			<< endl << "}" << endl
 			<< endl;
 	}

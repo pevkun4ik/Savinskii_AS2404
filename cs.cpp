@@ -58,6 +58,7 @@ void CS::set_currentid(const unordered_map<int, CS>& data) {
     CS::current_csid = Get_maxid(data);
 }
 
+
 CS::CS()
 {
     id = 0;
@@ -74,7 +75,7 @@ bool CS::addLink(const int& pos, const int& id) {
 }
 
 
-bool CS::deleteLink(const int& pos, const int& id) {
+bool CS::disconnectLink(const int& pos, const int& id) {
     if (this->links[pos].contains(id)) {
         this->links[pos].erase(id);
         return 1;
@@ -84,7 +85,7 @@ bool CS::deleteLink(const int& pos, const int& id) {
 }
 
 
-void CS::set_links(std::ifstream& file, const int& pos) {
+void CS::set_links(std::ifstream& file, const int& pos) {//????
     string line;
     getline(file >> std::ws, line);
     istringstream iss(line);
@@ -95,7 +96,13 @@ void CS::set_links(std::ifstream& file, const int& pos) {
     file.clear();
 }
 
-
+// void CS::set_links(const std::string& line, const int& pos) {
+//     std::istringstream iss(line);
+//     int id;
+//     while (iss >> id)
+//         if (id)
+//             this->addLink(pos, id);
+// }
 
 void CS::cs_save(ofstream& file)
 {

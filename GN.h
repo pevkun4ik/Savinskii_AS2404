@@ -26,8 +26,8 @@ public:
     void clearSelectedPipes();
     void clearSelectedCS();
 
-    void delete_GraphPipe(Pipe& pipe);
-    void delete_GraphCS(CS& cs);
+    void disconnect_GraphPipe(Pipe& pipe);
+    void disconnect_GraphCS(CS& cs);
 
     void delPipe();
     void delCS();
@@ -65,7 +65,7 @@ public:
     void selectAllpipes();
     void Find_pipesByName();
     void FindByIsWorking();
-    void delete_selectedPipes();
+    void disconnect_selectedPipes();
     int FindByDiameter(const int& diameter);
 
     void EditCS();
@@ -76,5 +76,5 @@ public:
     void selectAllcs();
     void Find_csByName();
     void FindByUnusedWorkshops();
-    void delete_selectedCS();
+    void disconnect_selectedCS();
 };
