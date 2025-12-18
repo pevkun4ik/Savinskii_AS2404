@@ -1,11 +1,10 @@
 #pragma once
 #include <unordered_map>
 #include <unordered_set>
-#include<vector>
+#include <vector>
 #include <iostream>
 #include <string>
-#include<stack>
-
+#include <stack>
 
 template <typename T>
 std::vector<T> dfs_by_Savinskii(std::unordered_map<T, std::unordered_set<T>> &graph) 

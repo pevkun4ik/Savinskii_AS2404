@@ -1,6 +1,6 @@
 #include <iostream>
-#include "GN.h"
-#include "gn_utils.h"
+#include "../header_files/GN.h"
+#include "g../header_files/n_utils.h"
 #include "dfs_by_Savinskii.h"
 
 using namespace std;

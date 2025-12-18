@@ -85,7 +85,7 @@ bool CS::disconnectLink(const int& pos, const int& id) {
 }
 
 
-void CS::set_links(std::ifstream& file, const int& pos) {//????
+void CS::set_links(std::ifstream& file, const int& pos) {
     string line;
     getline(file >> std::ws, line);
     istringstream iss(line);
@@ -95,14 +95,6 @@ void CS::set_links(std::ifstream& file, const int& pos) {//????
             this->addLink(pos, id);
     file.clear();
 }
-
-// void CS::set_links(const std::string& line, const int& pos) {
-//     std::istringstream iss(line);
-//     int id;
-//     while (iss >> id)
-//         if (id)
-//             this->addLink(pos, id);
-// }
 
 void CS::cs_save(ofstream& file)
 {
